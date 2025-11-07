@@ -137,7 +137,35 @@ function renderList(filter=''){
     const info = document.createElement('div'); info.className='info';
     const name = document.createElement('div'); name.className='name';
     name.contentEditable = true; name.innerText = p.name || ('Participante ' + (i+1));
-    name.addEventListener('input',()=>{ participants[i].name = name.innerText; saveLocal(); renderSlots(); });
+    name.addEventListener('input',()=>{ participants[i].name = name.innerText; saveLocal(); renderSlots(); }); const info = document.createElement('div'); info.className='info';
+const name = document.createElement('div');
+name.className = 'name';
+name.contentEditable = true;
+name.innerText = p.name || ('Participante ' + (i+1));
+name.addEventListener('input',()=>{
+  participants[i].name = name.innerText;
+  saveLocal();
+  renderSlots();
+});
+
+// <- AQUÍ PEGA EL BLOQUE DE AGENCIA + AÑO
+
+const meta = document.createElement('div');
+meta.className = 'meta';
+meta.contentEditable = true;
+meta.innerText = (p.agency || 'AGENCIA') + ' • ' + (p.year || 'AÑO');
+meta.addEventListener('input',()=>{
+  const split = meta.innerText.split('•');
+  participants[i].agency = split[0] ? split[0].trim() : '';
+  participants[i].year = split[1] ? split[1].trim() : '';
+  saveLocal();
+  renderSlots();
+});
+
+info.appendChild(name);
+info.appendChild(meta);
+
+// ...luego sigue tu código del drag handle, row, etc.
     const meta = document.createElement('div'); meta.className='meta'; meta.innerText = p.agency || '';
 
     info.appendChild(name); info.appendChild(meta);
