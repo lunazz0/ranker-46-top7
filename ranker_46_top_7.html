@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ranker - 46 participantes / Top 7 (editable)</title>
+<style>
+:root{--bg:#f5e9f6;--accent:#9b59b6;--accent2:#e9c9f2;--muted:#9aa0a6}
+*{box-sizing:border-box;font-family:Inter, 'Helvetica Neue', Arial}
+body{margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:#222}
+.header{padding:50px 20px;text-align:center}
+.logo{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#7b3fb0,#2b0f46);display:inline-block;margin-bottom:12px}
+.title{font-size:22px;letter-spacing:2px;color:#5a2b6c}
+.subtitle{color:#d385d9;font-size:13px;margin-top:6px}
+.container{display:flex;gap:24px;padding:30px;align-items:flex-start}
+.left{width:340px}
+.search{width:100%;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff;box-shadow:0 2px 0 rgba(0,0,0,0.03);margin-bottom:12px}
+.list{height:600px;overflow:auto;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee}
+.part{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid #f0f0f0}
+.avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#fff,#f2f2f2);border:6px solid var(--accent2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.info{flex:1}
+.name{font-weight:600}
+.meta{font-size:12px;color:var(--muted);margin-top:4px}
+.drag-handle{width:18px;height:18px;border-radius:4px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#777;cursor:grab}
+.controls{margin-top:12px}
+.btn{display:inline-block;padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600;margin-right:8px;cursor:pointer}
+.small{padding:6px 8px;font-size:13px}
+.deck{flex:1;padding:30px}
+.topTitle{font-weight:800;margin-bottom:8px}
+.topArea{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:center;justify-items:center}
+.slot{width:120px;height:120px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;position:relative}
+.slot .num{position:absolute;bottom:6px;right:8px;background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.slot img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.slotholder{display:flex;gap:14px;justify-content:center;margin-top:18px}
+.bottomRow{display:flex;gap:18px;justify-content:center;margin-top:12px}
+.hint{color:#555;font-size:13px;margin-top:12px}
+.footer{padding:20px;text-align:center;color:#888}
+.uploadInput{display:none}
+.actions{margin-top:10px}
+.exportarea{margin-top:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"></div>
+  <div class="title">SURVIVAL SHOW RANKER</div>
+  <div class="subtitle">Plantilla editable — 46 participantes • Top 7</div>
+</div>
+<div class="container">
+  <div class="left">
+    <input class="search" placeholder="Buscar participante..." id="search" />
+    <div class="list" id="list"></div>
+    <div class="controls">
+      <button class="btn small" id="resetBtn">Restablecer</button>
+      <button class="btn small" id="clearImages">Borrar imágenes</button>
+    </div>
+    <div class="actions">
+      <button class="btn" id="saveBtn">Guardar (local)</button>
+      <button class="btn" id="exportBtn">Exportar JSON</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" />
+      <button class="btn" id="importBtn">Importar JSON</button>
+    </div>
+    <div class="hint">Haz clic en un avatar para subir una foto. Arrastra un participante hacia un puesto para asignarlo.</div>
+  </div>
+  <div class="deck">
+    <div class="topTitle">TOP 7</div>
+    <div class="topArea" id="topArea">
+      <!-- layout: 1 centered top, then three, then three bottom -> total 7 but arranged as 1,3,3 -->
+      <div style="grid-column:2;display:flex;justify-content:center;">
+        <div class="slot" data-slot="1"></div>
+      </div>
+      <div style="grid-column:1;display:flex;justify-content:center;">
+        <div class="slot" data-slot="2"></div>
+      </div>
+      <div style="grid-column:2;display:flex;justify-content:center;">
+        <div class="slot" data-slot="3"></div>
+      </div>
+      <div style="grid-column:3;display:flex;justify-content:center;">
+        <div class="slot" data-slot="4"></div>
+      </div>
+    </div>
+    <div class="slotholder" id="middleRow"></div>
+    <div class="bottomRow" id="bottomRow"></div>
+    <div class="exportarea" id="exportarea"></div>
+  </div>
+</div>
+<div class="footer">Plantilla creada — editable localmente. No sube nada a servidores.</div>
+
+<!-- Templates & hidden inputs -->
+<input type="file" id="imgUpload" accept="image/*" class="uploadInput" />
+
+<script>
+const TOTAL = 46;
+const SLOTS = 7;
+let participants = [];
+let slots = Array(SLOTS).fill(null); // store participant index or null
+
+function makeEmptyParticipant(i){
+  return {id:i, name:'', agency:'', year:'', image:null}
+}
+
+function init(){
+  // load from localStorage if exists
+  const saved = localStorage.getItem('ranker_v1');
+  if(saved){
+    const obj = JSON.parse(saved);
+    participants = obj.participants || [];
+    slots = obj.slots || Array(SLOTS).fill(null);
+    // ensure correct length
+  }
+  if(!participants || participants.length!==TOTAL){
+    participants = [];
+    for(let i=0;i<TOTAL;i++) participants.push(makeEmptyParticipant(i));
+  }
+  renderList();
+  renderSlots();
+}
+
+function renderList(filter=''){
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  participants.forEach((p,i)=>{
+    const q = (p.name||'').toLowerCase();
+    if(filter && !q.includes(filter.toLowerCase())) return;
+    const row = document.createElement('div'); row.className='part'; row.draggable=true;
+    row.dataset.index=i;
+    row.addEventListener('dragstart',onDragStart);
+
+    const av = document.createElement('div'); av.className='avatar';
+    const img = document.createElement('img');
+    img.alt='';
+    if(p.image) img.src=p.image; else img.src='data:image/svg+xml;utf8,'+encodeURIComponent(defaultSvg(i+1));
+    av.appendChild(img);
+    av.addEventListener('click',()=>uploadImage(i));
+
+    const info = document.createElement('div'); info.className='info';
+    const name = document.createElement('div'); name.className='name';
+    name.contentEditable = true; name.innerText = p.name || ('Participante ' + (i+1));
+    name.addEventListener('input',()=>{ participants[i].name = name.innerText; saveLocal(); renderSlots(); });
+    const meta = document.createElement('div'); meta.className='meta'; meta.innerText = p.agency || '';
+
+    info.appendChild(name); info.appendChild(meta);
+    const drag = document.createElement('div'); drag.className='drag-handle'; drag.innerText='☰';
+
+    row.appendChild(av); row.appendChild(info); row.appendChild(drag);
+    list.appendChild(row);
+  });
+}
+
+function defaultSvg(n){
+  return `<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><rect width='100%' height='100%' rx='75' fill='%23f3e6f7'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='34' fill='%239b59b6' font-family='Arial' font-weight='700'>${n}</text></svg>`;
+}
+
+function renderSlots(){
+  // fill slot elements
+  const slotEls = document.querySelectorAll('.slot');
+  slotEls.forEach(el=>{
+    const idx = parseInt(el.dataset.slot)-1;
+    el.innerHTML='';
+    el.addEventListener('dragover',onDragOver);
+    el.addEventListener('drop',onDrop);
+    el.addEventListener('click',()=>{ promptAssign(idx); });
+    if(slots[idx]!==null){
+      const p = participants[slots[idx]];
+      const img = document.createElement('img');
+      img.src = p.image || ('data:image/svg+xml;utf8,'+encodeURIComponent(defaultSvg(p.id+1)));
+      el.appendChild(img);
+    }
+    const num = document.createElement('div'); num.className='num'; num.innerText=idx+1;
+    el.appendChild(num);
+  });
+}
+
+function onDragStart(e){ e.dataTransfer.setData('text/plain', e.currentTarget.dataset.index); }
+function onDragOver(e){ e.preventDefault(); }
+function onDrop(e){ e.preventDefault(); const partIndex = parseInt(e.dataTransfer.getData('text/plain')); const slotIndex = parseInt(e.currentTarget.dataset.slot)-1; assignToSlot(partIndex, slotIndex);
+}
+
+function assignToSlot(partIndex,slotIndex){
+  // remove participant from any previous slot
+  slots = slots.map(s => s===partIndex?null:s);
+  slots[slotIndex] = partIndex;
+  saveLocal(); renderSlots(); renderList();
+}
+
+function promptAssign(slotIndex){
+  const listNames = participants.map((p,i)=>`${i+1}. ${p.name||('Participante '+(i+1))}`).join('\n');
+  const ans = prompt('Asignar participante al puesto '+(slotIndex+1)+"\n\nEscribe el número del participante:\n\n"+listNames);
+  const n = parseInt(ans)-1;
+  if(!isNaN(n) && n>=0 && n<TOTAL) assignToSlot(n,slotIndex);
+}
+
+function uploadImage(i){
+  const input = document.getElementById('imgUpload');
+  input.onchange = function(evt){
+    const f = evt.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){ participants[i].image = ev.target.result; saveLocal(); renderList(); renderSlots(); input.value=''; }
+    reader.readAsDataURL(f);
+  }
+  input.click();
+}
+
+function saveLocal(){
+  localStorage.setItem('ranker_v1', JSON.stringify({participants, slots}));
+}
+
+function resetAll(){ if(!confirm('Restablecer plantilla (se perderá lo guardado localmente)?')) return; participants = []; for(let i=0;i<TOTAL;i++) participants.push(makeEmptyParticipant(i)); slots = Array(SLOTS).fill(null); saveLocal(); renderList(); renderSlots(); }
+
+function clearImages(){ if(!confirm('Borrar todas las imágenes?')) return; participants.forEach(p=>p.image=null); saveLocal(); renderList(); renderSlots(); }
+
+function exportJSON(){ const data = {participants, slots}; const blob = new Blob([JSON.stringify(data, null, 2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='ranker_export.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+function importJSONFile(file){ const reader = new FileReader(); reader.onload = function(e){ try{ const data = JSON.parse(e.target.result); if(!data.participants) throw new Error('Formato inválido'); participants = data.participants.slice(0,TOTAL); // ensure length
+      while(participants.length<TOTAL) participants.push(makeEmptyParticipant(participants.length));
+      slots = (data.slots||[]).slice(0,SLOTS);
+      while(slots.length<SLOTS) slots.push(null);
+      saveLocal(); renderList(); renderSlots(); alert('Importado correctamente'); }catch(err){ alert('Error al importar: '+err.message); } }
+  reader.readAsText(file);
+}
+
+// events
+document.getElementById('search').addEventListener('input',(e)=>renderList(e.target.value));
+document.getElementById('resetBtn').addEventListener('click',resetAll);
+document.getElementById('clearImages').addEventListener('click',clearImages);
+document.getElementById('saveBtn').addEventListener('click',()=>{ saveLocal(); alert('Guardado localmente.'); });
+document.getElementById('exportBtn').addEventListener('click',exportJSON);
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change',(e)=>{ if(e.target.files[0]) importJSONFile(e.target.files[0]); });
+
+init();
+</script>
+</body>
+</html>
