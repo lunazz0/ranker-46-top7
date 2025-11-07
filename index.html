@@ -65,24 +65,28 @@ body{margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:#222}
   </div>
   <div class="deck">
     <div class="topTitle">TOP 7</div>
-    <div class="topArea" id="topArea">
-      <!-- layout: 1 centered top, then three, then three bottom -> total 7 but arranged as 1,3,3 -->
-      <div style="grid-column:2;display:flex;justify-content:center;">
-        <div class="slot" data-slot="1"></div>
-      </div>
-      <div style="grid-column:1;display:flex;justify-content:center;">
-        <div class="slot" data-slot="2"></div>
-      </div>
-      <div style="grid-column:2;display:flex;justify-content:center;">
-        <div class="slot" data-slot="3"></div>
-      </div>
-      <div style="grid-column:3;display:flex;justify-content:center;">
-        <div class="slot" data-slot="4"></div>
-      <div class="slotholder" id="middleRow">
-    <div class="slotholder" id="middleRow">
+ <div class="topArea" id="topArea">
+  <!-- Slot 1: centrado arriba -->
+  <div style="grid-column:2;display:flex;justify-content:center;">
+    <div class="slot" data-slot="1"></div>
+  </div>
+  <!-- Slot 2 a 4: fila del medio -->
+  <div style="grid-column:1;display:flex;justify-content:center;">
+    <div class="slot" data-slot="2"></div>
+  </div>
+  <div style="grid-column:2;display:flex;justify-content:center;">
+    <div class="slot" data-slot="3"></div>
+  </div>
+  <div style="grid-column:3;display:flex;justify-content:center;">
+    <div class="slot" data-slot="4"></div>
+  </div>
+</div>
+<!-- Slots 5 a 7: fila de abajo, centrados -->
+<div class="slotholder" id="middleRow" style="display:flex;gap:14px;justify-content:center;margin-top:18px;">
   <div class="slot" data-slot="5"></div>
   <div class="slot" data-slot="6"></div>
   <div class="slot" data-slot="7"></div>
+</div>
 </div>
     <div class="slotholder" id="middleRow"></div>
     <div class="bottomRow" id="bottomRow"></div>
